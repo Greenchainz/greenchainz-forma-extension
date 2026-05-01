@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
     getSearchHistory,
     addToSearchHistory,
@@ -6,9 +6,31 @@ import {
     getSearchSuggestions,
 } from "../../lib/search-history";
 
+// Simple localStorage mock
+const localStorageMock = (() => {
+    let store: Record<string, string> = {};
+    return {
+        getItem: (key: string) => store[key] || null,
+        setItem: (key: string, value: string) => {
+            store[key] = value.toString();
+        },
+        removeItem: (key: string) => {
+            delete store[key];
+        },
+        clear: () => {
+            store = {};
+        },
+    };
+})();
+
+Object.defineProperty(global, "localStorage", {
+    value: localStorageMock,
+    writable: true,
+});
+
 describe("search-history module", () => {
     beforeEach(() => {
-        clearSearchHistory();
+        localStorageMock.clear();
     });
 
     it("should add search to history", () => {
