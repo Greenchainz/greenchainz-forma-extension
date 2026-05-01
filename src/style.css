@@ -29,13 +29,10 @@ body {
 }
 
 .gc-logo {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
   flex-shrink: 0;
-  /* Fallback if logo.svg fails to load — shows a green square */
-  background: #16a34a;
 }
 
 .gc-header h1 {
