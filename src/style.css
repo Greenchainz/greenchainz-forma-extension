@@ -407,6 +407,15 @@ body {
 .gc-budget-status.ok   { color: #166534; }
 .gc-budget-status.warn { color: #854d0e; }
 
+/* ── Interceptor callout (killer feature) ─────────────── */
+.gc-interceptor {
+  border: 2px solid #10b981 !important;
+}
+
+.gc-interceptor weave-button {
+  font-size: 12px !important;
+}
+
 /* ── Toast / feedback ──────────────────────────────────── */
 .gc-toast {
   position: fixed;
@@ -426,4 +435,9 @@ body {
 @keyframes slideUp {
   from { transform: translateY(8px); opacity: 0; }
   to   { transform: translateY(0);   opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
 }
