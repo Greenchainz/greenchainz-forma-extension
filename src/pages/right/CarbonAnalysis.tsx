@@ -18,6 +18,7 @@ import { useState, useEffect } from "preact/hooks";
 import { Forma } from "forma-embedded-view-sdk/auto";
 import { searchMaterials, getSwapSuggestions, formatGwp } from "../../lib/greenchainz-api";
 import type { GCMaterial } from "../../lib/types";
+import { ProjectScan } from "./ProjectScan";
 
 // Carbon threshold (kgCO₂e / unit) above which we fire the Interceptor callout.
 // Concrete baseline ~300 kgCO₂e/m³, structural steel ~1500 kgCO₂e/tonne.
@@ -48,6 +49,7 @@ interface ElementAnalysis {
 }
 
 export function CarbonAnalysis() {
+  const [tab, setTab]             = useState<"element" | "project">("element");
   const [analysis, setAnalysis]   = useState<ElementAnalysis | null>(null);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState<string | null>(null);
@@ -121,21 +123,39 @@ export function CarbonAnalysis() {
         <h1>Carbon Analysis</h1>
       </div>
 
-      {!hasSelection && (
+      {/* Tab bar */}
+      <div class="gc-tab-bar">
+        <button
+          class={`gc-tab${tab === "element" ? " active" : ""}`}
+          onClick={() => setTab("element")}
+        >
+          Element
+        </button>
+        <button
+          class={`gc-tab${tab === "project" ? " active" : ""}`}
+          onClick={() => setTab("project")}
+        >
+          Project Scan
+        </button>
+      </div>
+
+      {tab === "project" && <ProjectScan />}
+
+      {tab === "element" && !hasSelection && (
         <div class="gc-empty">
           <p>Select a building element in Forma to see its carbon impact and greener material options.</p>
         </div>
       )}
 
-      {hasSelection && loading && (
+      {tab === "element" && hasSelection && loading && (
         <div class="gc-loading">Analysing element…</div>
       )}
 
-      {hasSelection && error && (
+      {tab === "element" && hasSelection && error && (
         <div class="gc-empty" style="color:#991b1b">{error}</div>
       )}
 
-      {hasSelection && !loading && !error && analysis && (
+      {tab === "element" && hasSelection && !loading && !error && analysis && (
         <>
           {/* Element summary */}
           <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">
@@ -244,19 +264,28 @@ function inferMaterialKeyword(
   const name = elementName.toLowerCase();
 
   const KEYWORD_MAP: Array<[RegExp, string]> = [
-    [/\bclt\b|cross.laminated|mass timber/i, "Cross-Laminated Timber"],
-    [/\bglulam\b/i,                           "Glulam"],
-    [/\blvl\b|laminated veneer/i,             "LVL"],
-    [/structural steel|steel (column|beam|frame)/i, "Structural Steel"],
-    [/rebar|reinforc/i,                       "Rebar"],
-    [/concrete|rc wall|rc slab|rc column/i,   "Ready-Mix Concrete"],
-    [/brick|masonry|cmu/i,                    "Masonry"],
-    [/insul/i,                                "Insulation"],
-    [/glass|glazing|curtain wall/i,           "Flat Glass"],
-    [/timber|wood|lumber/i,                   "Dimensional Lumber"],
-    [/aluminum|aluminium/i,                   "Aluminum"],
-    [/gypsum|drywall|plasterboard/i,          "Gypsum Board"],
-    [/roof/i,                                 "Roofing Membranes"],
+    // Timber
+    [/\bclt\b|cross.laminated|mass timber/i,         "Cross-Laminated Timber"],
+    [/\bglulam\b/i,                                  "Glulam"],
+    [/\blvl\b|laminated veneer/i,                    "LVL"],
+    // Revit: structural steel framing/columns
+    [/w-wide flange|structural column.*steel|structural framing.*steel/i, "Structural Steel"],
+    [/structural steel|steel (column|beam|frame)/i,  "Structural Steel"],
+    [/rebar|reinforc/i,                              "Rebar"],
+    // Revit: basic wall / floor / foundation patterns
+    [/basic wall.*masonry|masonry.*wall/i,            "Masonry"],
+    [/mat foundation|pile.cap|foundation.*concrete/i,"Ready-Mix Concrete"],
+    [/floor.*concrete|concrete.*flat|concrete.*floor|concrete.*slab/i, "Ready-Mix Concrete"],
+    [/concrete|rc wall|rc slab|rc column/i,          "Ready-Mix Concrete"],
+    [/brick|masonry|cmu/i,                           "Masonry"],
+    [/insul/i,                                       "Insulation"],
+    [/curtain wall|curtain.*system|glazing|glass/i,  "Flat Glass"],
+    // Revit: timber walls
+    [/basic wall.*timber|timber.*wall/i,             "Dimensional Lumber"],
+    [/timber|wood|lumber/i,                          "Dimensional Lumber"],
+    [/aluminum|aluminium/i,                          "Aluminum"],
+    [/gypsum|drywall|plasterboard/i,                 "Gypsum Board"],
+    [/roof/i,                                        "Roofing Membranes"],
   ];
 
   for (const [pattern, keyword] of KEYWORD_MAP) {

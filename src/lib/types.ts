@@ -31,3 +31,18 @@ export interface FormaRfqItem {
   unit?: string;
   projectPath?: string;      // Forma element path
 }
+
+export type StructuralSystem = "concrete" | "steel" | "timber" | "hybrid";
+
+export interface ProjectCarbonEstimate {
+  gfaM2: number;
+  system: StructuralSystem;
+  conventionalGwp: number;  // kgCO2e total
+  gcVerifiedGwp: number;    // kgCO2e with GreenChainz verified materials
+  savingPercent: number;
+}
+
+export interface CarbonBudget {
+  targetKgCo2e: number;
+  perM2: boolean;            // true = target is per m² GFA, false = absolute total
+}

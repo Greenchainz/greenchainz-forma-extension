@@ -11,6 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@azure/identity": "^4.13.1",
+    "@azure/monitor-opentelemetry": "^1.16.0",
     "forma-embedded-view-sdk": "^0.93.0",
     "preact": "^10.28.0"
   },

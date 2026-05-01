@@ -51,6 +51,9 @@ export function MaterialSearch() {
   const [toast, setToast]           = useState<string | null>(null);
   const [expanded, setExpanded]     = useState<string | null>(null);
   const [swaps, setSwaps]           = useState<Record<string, GCMaterial[]>>({});
+  const [showFilters, setShowFilters] = useState(false);
+  const [maxGwp, setMaxGwp]         = useState<number | undefined>();
+  const [minMcs, setMinMcs]         = useState<number | undefined>();
 
   const debouncedQuery = useDebounce(query, 400);
 
@@ -64,6 +67,8 @@ export function MaterialSearch() {
         const materials = await searchMaterials({
           query: debouncedQuery || undefined,
           category: category === "All" ? undefined : category,
+          maxGwp,
+          minMcs,
           limit: 25,
         });
         if (!cancelled) setResults(materials);
@@ -75,7 +80,7 @@ export function MaterialSearch() {
     }
     void fetch();
     return () => { cancelled = true; };
-  }, [debouncedQuery, category]);
+  }, [debouncedQuery, category, maxGwp, minMcs]);
 
   // ── Show toast for 2.5s ───────────────────────────────────────────────────
   const showToast = useCallback((msg: string) => {
@@ -156,7 +161,66 @@ export function MaterialSearch() {
           value={query}
           onInput={(e: Event) => setQuery((e.target as HTMLInputElement).value)}
         />
+        <button
+          class={`gc-chip${showFilters ? " active" : ""}`}
+          style="flex-shrink:0"
+          onClick={() => setShowFilters(!showFilters)}
+          title="Advanced filters"
+        >
+          Filters{(maxGwp || minMcs) ? " •" : ""}
+        </button>
       </div>
+
+      {/* Advanced filters */}
+      {showFilters && (
+        <div class="gc-filter-panel">
+          <div class="gc-filter-row">
+            <label class="gc-filter-label">
+              Max Carbon
+              <span class="gc-filter-value">{maxGwp ? `≤ ${maxGwp} kgCO₂e` : "Any"}</span>
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="1000"
+              step="25"
+              class="gc-range"
+              value={maxGwp ?? 1000}
+              onInput={(e) => {
+                const v = parseInt((e.target as HTMLInputElement).value, 10);
+                setMaxGwp(v >= 1000 ? undefined : v);
+              }}
+            />
+          </div>
+          <div class="gc-filter-row">
+            <label class="gc-filter-label">
+              Min MCS Score
+              <span class="gc-filter-value">{minMcs ? `≥ ${minMcs}` : "Any"}</span>
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              class="gc-range"
+              value={minMcs ?? 0}
+              onInput={(e) => {
+                const v = parseInt((e.target as HTMLInputElement).value, 10);
+                setMinMcs(v <= 0 ? undefined : v);
+              }}
+            />
+          </div>
+          {(maxGwp || minMcs) && (
+            <button
+              class="gc-chip"
+              style="font-size:10px"
+              onClick={() => { setMaxGwp(undefined); setMinMcs(undefined); }}
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Category chips */}
       <div class="gc-filters">
