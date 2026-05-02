@@ -1,12 +1,27 @@
 import { defineConfig } from "vite";
 import preact from "@preact/preset-vite";
+import path from "path";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [preact()],
   build: {
     rollupOptions: {
-      input: { left: "left.html", right: "right.html" },
+      input: {
+        index: "index.html",
+        left: "left.html",
+        right: "right.html",
+      },
     },
+  },
+  resolve: {
+    alias:
+      command === "serve"
+        ? {
+            "forma-embedded-view-sdk/auto": path.resolve(
+              "./src/lib/__mocks__/forma-sdk.ts"
+            ),
+          }
+        : {},
   },
   server: {
     port: 5000,
@@ -22,4 +37,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

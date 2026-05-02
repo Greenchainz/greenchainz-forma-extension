@@ -4,9 +4,13 @@
  * All requests hit the public GreenChainz tRPC API.
  * Material search is unauthenticated. RFQ actions require the user to have
  * linked their GreenChainz account (token stored in Forma extension settings).
+ *
+ * In development (import.meta.env.DEV) mock data is returned so the UI
+ * renders without a live backend or Autodesk Forma context.
  */
 
 import type { GCMaterial } from "./types";
+import { MOCK_MATERIALS, MOCK_SWAPS } from "./__mocks__/mock-materials";
 
 const API_BASE = (import.meta.env.VITE_GC_API_URL ?? "https://greenchainz.com") + "/api/public";
 
@@ -21,6 +25,10 @@ export interface MaterialSearchParams {
 }
 
 export async function searchMaterials(params: MaterialSearchParams): Promise<GCMaterial[]> {
+  if (import.meta.env.DEV) {
+    return mockSearch(params);
+  }
+
   const qs = new URLSearchParams();
   if (params.query)    qs.set("q", params.query);
   if (params.category) qs.set("category", params.category);
@@ -37,6 +45,10 @@ export async function searchMaterials(params: MaterialSearchParams): Promise<GCM
 // ── Material detail ──────────────────────────────────────────────────────────
 
 export async function getMaterial(id: string): Promise<GCMaterial | null> {
+  if (import.meta.env.DEV) {
+    return MOCK_MATERIALS.find((m) => m.id === id) ?? null;
+  }
+
   const res = await fetch(`${API_BASE}/materials/${id}`);
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`GreenChainz API error: ${res.status}`);
@@ -46,6 +58,10 @@ export async function getMaterial(id: string): Promise<GCMaterial | null> {
 // ── Greener alternatives (SWAP Engine) ──────────────────────────────────────
 
 export async function getSwapSuggestions(materialId: string): Promise<GCMaterial[]> {
+  if (import.meta.env.DEV) {
+    return MOCK_SWAPS[materialId] ?? [];
+  }
+
   const res = await fetch(`${API_BASE}/materials/${materialId}/swaps`);
   if (!res.ok) return [];
   const json = await res.json() as { alternatives: GCMaterial[] };
@@ -91,4 +107,38 @@ export function mcsLabel(score?: number): string {
 export function formatGwp(gwp?: number, unit?: string): string {
   if (!gwp) return "—";
   return `${gwp.toFixed(1)} kgCO₂e/${unit ?? "unit"}`;
+}
+
+// ── Dev mock helpers ─────────────────────────────────────────────────────────
+
+function mockSearch(params: MaterialSearchParams): GCMaterial[] {
+  let results = [...MOCK_MATERIALS];
+
+  if (params.query) {
+    const q = params.query.toLowerCase();
+    results = results.filter(
+      (m) =>
+        m.name.toLowerCase().includes(q) ||
+        m.category.toLowerCase().includes(q) ||
+        m.manufacturer?.toLowerCase().includes(q)
+    );
+  }
+
+  if (params.category && params.category !== "All") {
+    results = results.filter((m) => m.category === params.category);
+  }
+
+  if (params.maxGwp !== undefined) {
+    results = results.filter(
+      (m) => m.gwpPerUnit === undefined || m.gwpPerUnit <= params.maxGwp!
+    );
+  }
+
+  if (params.minMcs !== undefined) {
+    results = results.filter(
+      (m) => m.materialCreditScore !== undefined && m.materialCreditScore >= params.minMcs!
+    );
+  }
+
+  return results.slice(0, params.limit ?? 20);
 }
