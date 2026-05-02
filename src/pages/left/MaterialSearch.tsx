@@ -16,6 +16,7 @@ import {
   formatGwp,
 } from "../../lib/greenchainz-api";
 import type { GCMaterial } from "../../lib/types";
+import logoUrl from "/logo.svg";
 
 // Categories aligned with EC3 / CSI MasterFormat
 const CATEGORIES = [
@@ -43,17 +44,17 @@ function useDebounce<T>(value: T, ms: number): T {
 }
 
 export function MaterialSearch() {
-  const [query, setQuery]           = useState("");
-  const [category, setCategory]     = useState("All");
-  const [results, setResults]       = useState<GCMaterial[]>([]);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState<string | null>(null);
-  const [toast, setToast]           = useState<string | null>(null);
-  const [expanded, setExpanded]     = useState<string | null>(null);
-  const [swaps, setSwaps]           = useState<Record<string, GCMaterial[]>>({});
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("All");
+  const [results, setResults] = useState<GCMaterial[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [swaps, setSwaps] = useState<Record<string, GCMaterial[]>>({});
   const [showFilters, setShowFilters] = useState(false);
-  const [maxGwp, setMaxGwp]         = useState<number | undefined>();
-  const [minMcs, setMinMcs]         = useState<number | undefined>();
+  const [maxGwp, setMaxGwp] = useState<number | undefined>();
+  const [minMcs, setMinMcs] = useState<number | undefined>();
 
   const debouncedQuery = useDebounce(query, 400);
 
@@ -149,7 +150,7 @@ export function MaterialSearch() {
     <div id="app">
       {/* Header */}
       <div class="gc-header">
-        <img src="/logo.svg" alt="GreenChainz" class="gc-logo" />
+        <img src={logoUrl} alt="GreenChainz" class="gc-logo" />
         <h1>GreenChainz</h1>
         <span>Verified Green Materials</span>
       </div>
@@ -237,7 +238,7 @@ export function MaterialSearch() {
 
       {/* Results */}
       {loading && <div class="gc-loading">Loading materials…</div>}
-      {error   && <div class="gc-empty" style="color:#991b1b">{error}</div>}
+      {error && <div class="gc-empty" style="color:#991b1b">{error}</div>}
 
       {!loading && !error && results.length === 0 && (
         <div class="gc-empty">
@@ -343,10 +344,10 @@ function MaterialCard({
                 const saving =
                   material.gwpPerUnit && swap.gwpPerUnit
                     ? (
-                        ((material.gwpPerUnit - swap.gwpPerUnit) /
-                          material.gwpPerUnit) *
-                        100
-                      ).toFixed(0)
+                      ((material.gwpPerUnit - swap.gwpPerUnit) /
+                        material.gwpPerUnit) *
+                      100
+                    ).toFixed(0)
                     : null;
 
                 return (
