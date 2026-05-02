@@ -1,16 +1,32 @@
 import { defineConfig } from "vite";
 import preact from "@preact/preset-vite";
-import basicSsl from "@vitejs/plugin-basic-ssl";
+import path from "path";
 
-export default defineConfig({
-  plugins: [preact(), basicSsl()],
+export default defineConfig(({ command }) => ({
+  plugins: [preact()],
   build: {
     rollupOptions: {
-      input: { left: "left.html", right: "right.html" },
+      input: {
+        index: "index.html",
+        left: "left.html",
+        right: "right.html",
+      },
     },
   },
+  resolve: {
+    alias:
+      command === "serve"
+        ? {
+            "forma-embedded-view-sdk/auto": path.resolve(
+              "./src/lib/__mocks__/forma-sdk.ts"
+            ),
+          }
+        : {},
+  },
   server: {
-    port: 8081,
+    port: 5000,
+    host: "0.0.0.0",
+    allowedHosts: true,
     cors: true,
     headers: { "Access-Control-Allow-Origin": "*" },
     proxy: {
@@ -21,4 +37,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
