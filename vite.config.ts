@@ -1,16 +1,17 @@
 import { defineConfig } from "vite";
 import preact from "@preact/preset-vite";
-import basicSsl from "@vitejs/plugin-basic-ssl";
 
 export default defineConfig({
-  plugins: [preact(), basicSsl()],
+  plugins: [preact()],
   build: {
     rollupOptions: {
       input: { left: "left.html", right: "right.html" },
     },
   },
   server: {
-    port: 8081,
+    port: 5000,
+    host: "0.0.0.0",
+    allowedHosts: true,
     cors: true,
     headers: { "Access-Control-Allow-Origin": "*" },
     proxy: {
