@@ -16,6 +16,9 @@ import {
   formatGwp,
 } from "../../lib/greenchainz-api";
 import type { GCMaterial } from "../../lib/types";
+import { MaterialSearchSkeleton } from "../../lib/loading-skeletons";
+import { addToSearchHistory } from "../../lib/search-history";
+import { a11y } from "../../lib/a11y";
 import logoUrl from "/logo.svg";
 
 // Categories aligned with EC3 / CSI MasterFormat
@@ -72,7 +75,10 @@ export function MaterialSearch() {
           minMcs,
           limit: 25,
         });
-        if (!cancelled) setResults(materials);
+        if (!cancelled) {
+          setResults(materials);
+          addToSearchHistory(debouncedQuery, category);
+        }
       } catch (err) {
         if (!cancelled) setError("Could not load materials. Check your connection.");
       } finally {
@@ -237,7 +243,7 @@ export function MaterialSearch() {
       </div>
 
       {/* Results */}
-      {loading && <div class="gc-loading">Loading materials…</div>}
+      {loading && <MaterialSearchSkeleton />}
       {error && <div class="gc-empty" style="color:#991b1b">{error}</div>}
 
       {!loading && !error && results.length === 0 && (
@@ -292,10 +298,22 @@ function MaterialCard({
   const badgeLabel = mcsLabel(material.materialCreditScore);
 
   return (
-    <div class="gc-card" onClick={onExpand}>
+    <div
+      class="gc-card"
+      onClick={onExpand}
+      role="button"
+      tabIndex={0}
+      aria-label={a11y.materialCardLabel(material.name, material.gwpPerUnit, material.gwpUnit)}
+      onKeyDown={(e: KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onExpand(); }
+      }}
+    >
       <div class="gc-card-header">
         <div class="gc-card-name">{material.name}</div>
-        <span class={`gc-mcs-badge ${badgeClass}`}>{badgeLabel}</span>
+        <span
+          class={`gc-mcs-badge ${badgeClass}`}
+          aria-label={a11y.mcsBadgeLabel(material.materialCreditScore)}
+        >{badgeLabel}</span>
       </div>
 
       <div class="gc-card-meta">
