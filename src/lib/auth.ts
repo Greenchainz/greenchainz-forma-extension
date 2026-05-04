@@ -4,6 +4,7 @@
  */
 
 const TOKEN_STORAGE_KEY = "gc-auth-token-v1";
+const LAST_VERIFIED_KEY = "gc-auth-verified-v1";
 
 export interface AuthState {
     token: string | null;
@@ -39,6 +40,7 @@ export function setAuthToken(token: string): void {
 export function clearAuthToken(): void {
     try {
         localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(LAST_VERIFIED_KEY);
     } catch {
         // silent
     }
@@ -47,6 +49,7 @@ export function clearAuthToken(): void {
 /**
  * Verify token is still valid by attempting a simple API call.
  * Returns true if token works, false if invalid/expired.
+ * Persists the verified-at timestamp on success.
  */
 export async function verifyAuthToken(token: string): Promise<boolean> {
     try {
@@ -57,6 +60,13 @@ export async function verifyAuthToken(token: string): Promise<boolean> {
                 headers: { Authorization: `Bearer ${token}` },
             }
         );
+        if (res.ok) {
+            try {
+                localStorage.setItem(LAST_VERIFIED_KEY, String(Date.now()));
+            } catch {
+                // non-fatal
+            }
+        }
         return res.ok;
     } catch {
         return false;
@@ -68,10 +78,19 @@ export async function verifyAuthToken(token: string): Promise<boolean> {
  */
 export function getAuthState(): AuthState {
     const token = getAuthToken();
+    let lastVerified: number | null = null;
+    if (token) {
+        try {
+            const stored = localStorage.getItem(LAST_VERIFIED_KEY);
+            lastVerified = stored ? parseInt(stored, 10) : null;
+        } catch {
+            // non-fatal
+        }
+    }
     return {
         token,
         isLinked: !!token,
-        lastVerified: token ? Date.now() : null,
+        lastVerified,
     };
 }
 

@@ -11,8 +11,27 @@
 
 import type { GCMaterial } from "./types";
 import { MOCK_MATERIALS, MOCK_SWAPS } from "./__mocks__/mock-materials";
+import { withRetry } from "./retry";
 
 const API_BASE = (import.meta.env.VITE_GC_API_URL ?? "https://greenchainz.com") + "/api/public";
+
+const TIMEOUT_MS = 10_000;
+
+/**
+ * fetch() wrapper that adds a per-request timeout and exponential-backoff retry
+ * for transient network failures. POST requests (mutations) are not retried.
+ */
+function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+  const isIdempotent = !init?.method || init.method.toUpperCase() === "GET";
+  const fetcher = () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    return fetch(url, { ...init, signal: controller.signal }).finally(() =>
+      clearTimeout(timer)
+    );
+  };
+  return isIdempotent ? withRetry(fetcher) : fetcher();
+}
 
 // ── Material search ──────────────────────────────────────────────────────────
 
@@ -30,13 +49,13 @@ export async function searchMaterials(params: MaterialSearchParams): Promise<GCM
   }
 
   const qs = new URLSearchParams();
-  if (params.query)    qs.set("q", params.query);
-  if (params.category) qs.set("category", params.category);
-  if (params.maxGwp)   qs.set("maxGwp", String(params.maxGwp));
-  if (params.minMcs)   qs.set("minMcs", String(params.minMcs));
+  if (params.query)                qs.set("q", params.query);
+  if (params.category)             qs.set("category", params.category);
+  if (params.maxGwp !== undefined) qs.set("maxGwp", String(params.maxGwp));
+  if (params.minMcs !== undefined) qs.set("minMcs", String(params.minMcs));
   qs.set("limit", String(params.limit ?? 20));
 
-  const res = await fetch(`${API_BASE}/materials/search?${qs.toString()}`);
+  const res = await apiFetch(`${API_BASE}/materials/search?${qs.toString()}`);
   if (!res.ok) throw new Error(`GreenChainz API error: ${res.status}`);
   const json = await res.json() as { materials: GCMaterial[] };
   return json.materials ?? [];
@@ -49,7 +68,7 @@ export async function getMaterial(id: string): Promise<GCMaterial | null> {
     return MOCK_MATERIALS.find((m) => m.id === id) ?? null;
   }
 
-  const res = await fetch(`${API_BASE}/materials/${id}`);
+  const res = await apiFetch(`${API_BASE}/materials/${id}`);
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`GreenChainz API error: ${res.status}`);
   return res.json() as Promise<GCMaterial>;
@@ -62,7 +81,7 @@ export async function getSwapSuggestions(materialId: string): Promise<GCMaterial
     return MOCK_SWAPS[materialId] ?? [];
   }
 
-  const res = await fetch(`${API_BASE}/materials/${materialId}/swaps`);
+  const res = await apiFetch(`${API_BASE}/materials/${materialId}/swaps`);
   if (!res.ok) return [];
   const json = await res.json() as { alternatives: GCMaterial[] };
   return json.alternatives ?? [];
@@ -76,7 +95,7 @@ export async function addToRfq(
   unit: string,
   authToken: string
 ): Promise<{ rfqId: string }> {
-  const res = await fetch(`${API_BASE}/rfq/add-item`, {
+  const res = await apiFetch(`${API_BASE}/rfq/add-item`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -91,21 +110,21 @@ export async function addToRfq(
 // ── MCS badge helper ─────────────────────────────────────────────────────────
 
 export function mcsBadgeClass(score?: number): "high" | "medium" | "low" {
-  if (!score) return "low";
+  if (score == null) return "low";
   if (score >= 75) return "high";
   if (score >= 50) return "medium";
   return "low";
 }
 
 export function mcsLabel(score?: number): string {
-  if (!score) return "Unscored";
+  if (score == null) return "Unscored";
   return `MCS ${score}`;
 }
 
 // ── GWP display helper ───────────────────────────────────────────────────────
 
 export function formatGwp(gwp?: number, unit?: string): string {
-  if (!gwp) return "—";
+  if (gwp == null || Number.isNaN(gwp)) return "—";
   return `${gwp.toFixed(1)} kgCO₂e/${unit ?? "unit"}`;
 }
 
