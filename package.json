@@ -46,11 +46,21 @@
         "panels": [
           {
             "type": "leftPanelExtension",
-            "url": "http://localhost:8081/left.html"
+            "url": "https://greenchainz-forma.azurestaticapps.net/left.html"
           },
           {
             "type": "rightPanelExtension",
-            "url": "http://localhost:8081/right.html"
+            "url": "https://greenchainz-forma.azurestaticapps.net/right.html"
+          }
+        ],
+        "_dev_panels": [
+          {
+            "type": "leftPanelExtension",
+            "url": "http://localhost:5000/left.html"
+          },
+          {
+            "type": "rightPanelExtension",
+            "url": "http://localhost:5000/right.html"
           }
         ]
       }

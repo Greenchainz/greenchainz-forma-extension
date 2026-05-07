@@ -1,0 +1,78 @@
+name: Deploy — Forma Extension to Azure Static Web Apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - '*.html'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'vite.config.ts'
+      - 'staticwebapp.config.json'
+      - '.github/workflows/deploy.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    name: Build and Deploy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+        env:
+          # Production API — Forma panels call the live GreenChainz API
+          VITE_GC_API_URL: https://greenchainz.com
+          VITE_FORMA_EXTENSION_ID: 6f4142af-4d9f-404d-9d1a-00791e9c7c24
+          VITE_FORMA_ENV: production
+
+      - name: Deploy to Azure Static Web Apps
+        id: swa_deploy
+        uses: azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_FORMA }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: ${{ github.event_name == 'pull_request' && github.event.action == 'closed' && 'close' || 'upload' }}
+          app_location: "/"
+          output_location: "dist"
+          # Build already happened above — skip SWA's own build step
+          skip_app_build: true
+
+      - name: Print deployed URL
+        if: steps.swa_deploy.outputs.static_web_app_url != ''
+        run: echo "Deployed to ${{ steps.swa_deploy.outputs.static_web_app_url }}"
