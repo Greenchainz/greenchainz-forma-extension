@@ -46,11 +46,11 @@
         "panels": [
           {
             "type": "leftPanelExtension",
-            "url": "https://greenchainz-forma.azurestaticapps.net/left.html"
+            "url": "https://mango-plant-0c561540f.7.azurestaticapps.net/left.html"
           },
           {
             "type": "rightPanelExtension",
-            "url": "https://greenchainz-forma.azurestaticapps.net/right.html"
+            "url": "https://mango-plant-0c561540f.7.azurestaticapps.net/right.html"
           }
         ],
         "_dev_panels": [
